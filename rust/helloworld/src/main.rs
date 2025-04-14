@@ -30,20 +30,63 @@ fn get_random_key() -> &'static str {
     keys.choose(&mut rng).copied().unwrap_or("en")
 }
 
-fn greet(lang: Option<String>) {
+fn greet(lang: Option<String>) -> String {
     let code = match lang {
         Some(l) if !l.is_empty() => l,
         _ => get_random_key().to_string(),
     };
 
-    match GREETING.get(code.as_str()) {
-        Some(message) => println!("{}", message),
-        None => println!("Unknown language code."),
-    }
+    GREETING
+        .get(code.as_str())
+        .unwrap_or(&"Unknown language code.")
+        .to_string()
 }
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let lang = args.get(0).cloned();
-    greet(lang);
+    println!("{}", greet(lang));
+}
+
+
+/* Tests for the file */
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_greet_known_languages() {
+        assert_eq!(greet(Some("en".to_string())), "Hello, world!");
+        assert_eq!(greet(Some("fr".to_string())), "Bonjour, le monde!");
+        assert_eq!(greet(Some("he".to_string())), "שלום, עולם!");
+    }
+
+    #[test]
+    fn test_greet_unknown_language() {
+        assert_eq!(greet(Some("zz".to_string())), "Unknown language code.");
+    }
+
+    #[test]
+    fn test_greet_empty_or_none_defaults_to_valid_key() {
+        let result = greet(None);
+        assert!(
+            GREETING.values().any(|&val| val == result),
+            "Greeting should be one of the valid greetings"
+        );
+
+        let result = greet(Some("".to_string()));
+        assert!(
+            GREETING.values().any(|&val| val == result),
+            "Greeting should be one of the valid greetings"
+        );
+    }
+
+    #[test]
+    fn test_random_key_returns_valid_key() {
+        let key = get_random_key();
+        assert!(
+            GREETING.contains_key(key),
+            "Random key should be from the GREETING keys"
+        );
+    }
 }
